@@ -67,9 +67,11 @@ func put_down(tile) -> void:
 		if tile.is_show_outline():
 			for x in get_legal_moves():
 				emit_signal("placed")
-				disconnect("placed", tile, "show_outline")
-				if get_tile(x) == tile:
+				var place_tile = get_tile(x)
+				disconnect("placed", place_tile, "show_outline")
+				if place_tile == tile:
 					current_piece.pos = x
+			#print(tile.transform.origin - current_piece.pos)
 			current_piece.transform.origin = tile.transform.origin
 			current_piece.transform.origin.y = peice_height
 			current_piece.disable_collision(false)
@@ -89,11 +91,24 @@ func get_legal_moves() -> Array:
 		var pos = Vector2(up, right)
 		if !occupied(pos):
 			moves.append(pos)
+	var copy = moves.duplicate()
 	for x in moves:
+		#print("move: ", x)
 		for p in opponent.get_children():
-			if opponent.setup_tiles[p.pos.x][p.pos.y] == setup_tiles[x.x][x.y]:
-				print("can eat: ", p.name)
-	return moves
+			var op_tile = opponent.setup_tiles[p.pos.x][p.pos.y]
+			var move_tile = setup_tiles[x.x][x.y]
+			if op_tile == move_tile:
+				copy.erase(x)
+				var eat_pos = 2*x - original_pos
+				if 0 <= eat_pos.x and eat_pos.x < 8 and 0 <= eat_pos.y and eat_pos.y < 8:
+					var can = true
+					for op in opponent.get_children():
+						if opponent.setup_tiles[op.pos.x][op.pos.y] == setup_tiles[eat_pos.x][eat_pos.y]:
+							can = false
+							break
+					if can:
+						copy.append(eat_pos)
+	return copy
 
 func occupied(pos) -> bool:
 	for x in get_children():
