@@ -1,0 +1,18 @@
+[gd_scene load_steps=5 format=2]
+
+[ext_resource path="res://checkers/CheckersPiece.tscn" type="PackedScene" id=1]
+[ext_resource path="res://checkers/CheckersPieceBlack.gd" type="Script" id=2]
+[ext_resource path="res://checkers/texture_black.png" type="Texture" id=3]
+
+[sub_resource type="SpatialMaterial" id=1]
+resource_name = "lambert3"
+params_cull_mode = 2
+albedo_texture = ExtResource( 3 )
+metallic = 1.0
+roughness = 0.0764706
+
+[node name="CheckerPiece" index="0" instance=ExtResource( 1 )]
+script = ExtResource( 2 )
+
+[node name="pCylinder1" parent="." index="0"]
+material/0 = SubResource( 1 )

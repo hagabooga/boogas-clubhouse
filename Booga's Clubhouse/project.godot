@@ -8,9 +8,26 @@
 
 config_version=4
 
-_global_script_classes=[  ]
+_global_script_classes=[ {
+"base": "Spatial",
+"class": "CheckersPiece",
+"language": "GDScript",
+"path": "res://checkers/CheckersPiece.gd"
+}, {
+"base": "Node",
+"class": "CheckersPlayer",
+"language": "GDScript",
+"path": "res://checkers/CheckersPlayer.gd"
+}, {
+"base": "Spatial",
+"class": "CheckersTile",
+"language": "GDScript",
+"path": "res://checkers/CheckersTile.gd"
+} ]
 _global_script_class_icons={
-
+"CheckersPiece": "",
+"CheckersPlayer": "",
+"CheckersTile": ""
 }
 
 [application]

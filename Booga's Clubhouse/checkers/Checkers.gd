@@ -2,25 +2,56 @@ tool
 extends Spatial
 
 
-var tile = load("res://checkers/CheckerTile.tscn")
-var tile_dark = load("res://checkers/CheckerTileDark.tscn")
+var tile = preload("res://checkers/CheckersTile.tscn")
+var tile_dark = preload("res://checkers/CheckersTileDark.tscn")
 
+const board_size : int = 8
+
+const tile_size : int = 2
+#const tile_size : int = 2
+const peice_height : float = 0.2
+const num_pieces = 12
+
+var original_pos
+var current_piece = null
+
+var tiles_dict = {}
 var tiles = []
+var tiles_reverse = []
+var original_tiles = []
+
+
 
 func _ready():
-	for row in range(8):
+	create_board()
+	reverse()
+	$PlayerRed.setup_tiles = tiles
+	$PlayerRed.move_pieces_start()
+	$PlayerRed.opponent = $PlayerBlack
+	
+	$PlayerBlack.setup_tiles = tiles_reverse
+	$PlayerBlack.move_pieces_start()
+	$PlayerBlack.opponent = $PlayerRed
+
+func create_board() -> void:
+	for row in range(board_size):
 		tiles.append([])
-		var i = 0
-		if row % 2 == 0:
-			i = 1
-		for col in range(8):
-			var add_tile
-			if i % 2 == 0:
-				add_tile = tile.instance()
-			else:
-				add_tile = tile_dark.instance()
+		for col in range(board_size):
+			var add_tile = tile_dark if (row + col) % 2 else tile
+			add_tile = add_tile.instance()
 			$CheckerBoard.add_child(add_tile)
-			add_tile.transform.origin = Vector3(col*2, 0, row*2)
 			tiles[row].append(add_tile)
-			i += 1
+			var pos = Vector3(col*2, 0, row*2)
+			add_tile.transform.origin = pos
+			add_tile.connect("clicked", $PlayerRed, "put_down")
+			add_tile.connect("clicked", $PlayerBlack, "put_down")
+			tiles_dict[Vector2(pos.z,pos.x)/2] = add_tile
+	print(tiles_dict)
 			
+		
+func reverse():
+	#original_tiles = tiles.duplicate()
+	tiles_reverse = tiles.duplicate(true)
+	tiles_reverse.invert()
+	for b in tiles:
+		b.invert()
