@@ -1,7 +1,6 @@
 extends Node2D
 
-slave func setPosition(pos):
-  position = pos
+
   
 master func shutItDown():
   #Send a shutdown command to all connected clients, including this one

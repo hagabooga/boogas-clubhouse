@@ -13,6 +13,11 @@ var king_texture : StreamTexture = preload("res://checkers/texture_red_king.png"
 
 var pos : Vector2
 
+var master_id
+var is_king = false
+
+func _ready():
+	$pCylinder1.set_surface_material(0, $pCylinder1.get_surface_material(0).duplicate())
 
 func _on_Area_input_event(camera, event, click_position, click_normal, shape_idx):
 	if event is InputEventMouseButton:
@@ -22,6 +27,7 @@ func _on_Area_input_event(camera, event, click_position, click_normal, shape_idx
 			
 func become_king() -> void:
 	$pCylinder1.get_surface_material(0).albedo_texture = king_texture
+	is_king = true
 
 func disable_collision(yes):
 	$pCylinder1/Area/CollisionShape.disabled = yes

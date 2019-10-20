@@ -7,7 +7,7 @@ func _player_connected(id):
   print("Player connected to server!")
   #Game on!
   globals.otherPlayerId = id
-  var game = preload("res://Game.tscn").instance()
+  var game = preload("res://checkers/Checkers.tscn").instance()
   get_tree().get_root().add_child(game)
   hide()
   print(id)

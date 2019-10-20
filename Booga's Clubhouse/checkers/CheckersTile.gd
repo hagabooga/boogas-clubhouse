@@ -5,6 +5,11 @@ var occupied = false
 
 class_name CheckersTile
 
+var eat_piece = null
+
+func _ready():
+	connect("clicked", self, "eat")
+
 func _on_Area_input_event(camera, event, click_position, click_normal, shape_idx):
 	if event is InputEventMouseButton:
 		if event.button_index == BUTTON_LEFT and event.pressed:
@@ -15,3 +20,8 @@ func is_show_outline() -> bool:
 
 func show_outline(yes : bool) -> void:
 	$MeshInstance/Outline.visible = yes
+		
+func eat(s):
+	if eat_piece != null:
+		eat_piece.queue_free()
+		eat_piece = null

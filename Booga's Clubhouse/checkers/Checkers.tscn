@@ -1,26 +1,27 @@
-[gd_scene load_steps=4 format=2]
+[gd_scene load_steps=3 format=2]
 
 [ext_resource path="res://checkers/Checkers.gd" type="Script" id=1]
 [ext_resource path="res://checkers/Camera.gd" type="Script" id=2]
-[ext_resource path="res://checkers/CheckersPlayer.tscn" type="PackedScene" id=3]
 
 [node name="Checkers" type="Spatial"]
 script = ExtResource( 1 )
 
 [node name="DirectionalLight" type="DirectionalLight" parent="."]
-transform = Transform( 1, 0, 0, 0, 0.532817, 0.846231, 0, -0.846231, 0.532817, 8, 12, 30.0317 )
+transform = Transform( -0.954272, -0.136167, 0.266128, 0.0674181, 0.769274, 0.635352, -0.29124, 0.62424, -0.724916, -7.58918, 8.3053, 15.4698 )
+light_energy = 1.2
+light_specular = 0.53
+shadow_bias = 8.04
+shadow_contact = 16.0
+directional_shadow_split_2 = 0.423
+directional_shadow_blend_splits = true
+directional_shadow_normal_bias = 3.45
+directional_shadow_bias_split_scale = 0.82
 
 [node name="Camera" type="Camera" parent="."]
-transform = Transform( 1, 0, 0, 0, 0.707107, 0.707107, 0, -0.707107, 0.707107, 7, 29.1254, 37.2668 )
+transform = Transform( 1, 0, 0, 0, 0.707107, 0.707107, 0, -0.707107, 0.707107, 7, 44.5, 52.2 )
 keep_aspect = 0
-fov = 35.0
+fov = 20.0
 size = 28.0
-far = 50.0
 script = ExtResource( 2 )
 
 [node name="CheckerBoard" type="Spatial" parent="."]
-
-[node name="PlayerRed" parent="." instance=ExtResource( 3 )]
-
-[node name="PlayerBlack" parent="." instance=ExtResource( 3 )]
-player_color = 1
