@@ -21,37 +21,43 @@ const peice_rows : int = 3
 const peice_columns : int = 4
 
 signal placed
+signal finished_turn
 
+func _ready():
+	connect("finished_turn", self, "enable_click", [false])
 
-slave func setPosition(pos, dis):
-	#print(get_network_master())
-	print(pos,dis)
-	#opponent.current_piece = dis
-	#opponent.get_piece(current_piece.pos).transform.origin = Vector3(-dis.x,peice_height*2,-dis.z)
-#	opponent.original_origin = opponent.get_piece(current_piece.pos).transform.origin
-#	opponent.get_piece(current_piece.pos).transform.origin = opponent.original_origin + Vector3(-dis.x,peice_height*2,-dis.z)
+func enable_click(yes : bool, except = null) -> void:
+	for x in get_children():
+		x.can_be_clicked = yes
+	if except != null:
+		except.can_be_clicked = !yes
 
-
-
+remotesync func setPosition(pos):
+	current_piece.transform.origin = pos
+	#print("RPC CALL ", get_network_master())
 
 func _physics_process(delta):
+	#print(get_network_master())
+	if !is_network_master():
+		return
 	if current_piece == null:
 		return
-		#print(current_piece)
+	#print(current_piece)
 	var camera = get_viewport().get_camera()
 	var ray_len = camera.transform.origin.distance_to(current_piece.transform.origin)
 	var mouse_pos = camera.get_viewport().get_mouse_position()
 	var from = camera.project_ray_origin(mouse_pos)
 	var to = from + camera.project_ray_normal(mouse_pos) * ray_len
 	to.y = peice_height*2
-	current_piece.transform.origin = to
-	var dis = to - original_origin
+	rpc_unreliable("setPosition", to)
+	#current_piece.transform.origin = to
+	#var dis = to - original_origin
 	#opponent.get_piece(current_piece.pos).transform.origin = Vector3(-dis.x,peice_height*2,-dis.z)
 #	print(is_network_master())
 #	if is_network_master():
 #		print("wow")
 	# network_master calls function on peer side
-	rpc_unreliable("setPosition",current_piece.transform.origin, dis)
+	
 
 func get_piece(pos):
 	for x in get_children():
@@ -67,44 +73,80 @@ func move_pieces_start(id) -> void:
 			var column = col*2 if alternate else col*2 + 1
 			add.transform.origin = setup_tiles[row][column].transform.origin
 			add.transform.origin.y = 0.2
-			add.set_network_master(id)
 			add_child(add)
+			add.set_network_master(id)
 			add.pos = Vector2(row,column)
  
-slave func set_piece(piece):
-	pass
+remotesync func set_piece(p):
+	#print("YO", piece)
+	current_piece = get_piece(p)
 
 func pickup_piece(piece):
-	print(piece.get_network_master())
+	#print(piece.get_network_master())
+	print(piece.is_network_master())
+	#print(current_piece.is_network_master())
 	if current_piece == null and piece.is_network_master():
-		print("WTF")
-		current_piece = piece
+		rpc_unreliable("set_piece", piece.pos)
+		#print("WTF")
 		original_origin = current_piece.transform.origin
 		original_pos = current_piece.pos
 		current_piece.disable_collision(true)
-		var moves = get_legal_moves()
+		get_legal_moves()
 		#print("Legal moves: ", moves)
 
+puppet func rpc_put_down(tile_pos, pos, is_king):
+	#print("wtf")
+	current_piece.pos = pos
+	if is_king and !current_piece.is_king:
+		current_piece.become_king()
+	current_piece.transform.origin = tile_pos
+	current_piece.transform.origin.y = peice_height
+	current_piece.disable_collision(false)
+	current_piece = null
 
 func put_down(tile) -> void:
 	if current_piece != null:
 		if tile.is_show_outline():
+			var move_pos
+			var did_eat = false
 			for legal_move in current_legal_moves:
 				#if legal_move[0] != original_pos:
+				print(legal_move)
 				var place_tile = get_tile(legal_move[0])
 				emit_signal("placed")
 				disconnect("placed", place_tile, "show_outline")
 				if place_tile == tile:
-					current_piece.pos = legal_move[0]
+					move_pos = legal_move[0]
+					current_piece.pos = move_pos
+					if legal_move[1] != null:
+						did_eat = true
 					if current_piece.pos.x > 6 and !current_piece.is_king:
 						current_piece.become_king()
 					#print(current_piece.pos)
+			rpc_unreliable("rpc_put_down", tile.transform.origin, move_pos, current_piece.pos.x > 6)
 			current_piece.transform.origin = tile.transform.origin
 			current_piece.transform.origin.y = peice_height
 			current_piece.disable_collision(false)
+			#print(original_pos, current_piece.pos)
+			if did_eat:
+				enable_click(false, current_piece)
+				
+#				get_legal_moves()
+#				print(current_legal_moves)
+#				if len(current_legal_moves) == 1:
+#					emit_signal("finished_turn")
+			elif original_pos != current_piece.pos:
+				emit_signal("finished_turn")
 			current_piece = null
+		
+slave func set_tile_eat(tile_pos, pos):
+	#print("YO")
+	get_tile(tile_pos).eat_piece = opponent.get_piece(pos)
+	#print(opponent.get_tile(pos).eat_piece)
 
-slave func get_legal_moves() -> void:
+
+
+func get_legal_moves() -> void:
 	var moves = [[original_pos, null]]
 	var left = original_pos.y - 1
 	var right = original_pos.y + 1
@@ -137,11 +179,10 @@ slave func get_legal_moves() -> void:
 		#print(move)
 		var move_tile = get_tile(move)
 		var can_eat = true
-		var ate = false
 		for op_piece in opponent.get_children():
 			var op_tile = opponent.get_tile(op_piece.pos)
 			if op_tile == move_tile:
-				print("eat tile: ",op_piece.pos)#, p.queue_free()) 
+				#print("eat tile: ",op_piece.pos)#, p.queue_free()) 
 				copy.erase([move,null])
 				var eat_pos = 2*move - original_pos
 				if 0 <= eat_pos.x and eat_pos.x < 8 and 0 <= eat_pos.y and eat_pos.y < 8:
@@ -153,15 +194,20 @@ slave func get_legal_moves() -> void:
 						if !occupied(eat_pos):
 							copy.append([eat_pos, op_piece])
 							copy.erase([move, null])
-	print(copy)
+	#print(copy)
 	for legal_move in copy:
 		#print(legal_move)
 		var move_tile = get_tile(legal_move[0])
 		connect("placed", move_tile, "show_outline", [false])
 		move_tile.show_outline(true)
-		print(move_tile)
+		#print(move_tile)
 		move_tile.eat_piece = legal_move[1]
+		if legal_move[1] != null:
+			print(legal_move)
+			rpc_unreliable("set_tile_eat", legal_move[0], legal_move[1].pos)
 	current_legal_moves = copy
+	
+
 
 func occupied(pos) -> bool:
 	for x in get_children():

@@ -4,7 +4,7 @@ extends Spatial
 signal clicked
 signal dropped
 
-
+var can_be_clicked : bool = false
 
 
 class_name CheckersPiece
@@ -20,7 +20,7 @@ func _ready():
 	$pCylinder1.set_surface_material(0, $pCylinder1.get_surface_material(0).duplicate())
 
 func _on_Area_input_event(camera, event, click_position, click_normal, shape_idx):
-	if event is InputEventMouseButton:
+	if can_be_clicked and event is InputEventMouseButton:
 		if event.button_index == BUTTON_LEFT and event.pressed:
 			emit_signal("clicked", self)
 			#print("PRESSED LEFT BUTTON row: ", transform.origin.x,"col: ",transform.origin.z)
