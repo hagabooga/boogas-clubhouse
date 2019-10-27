@@ -34,15 +34,12 @@ func enable_click(yes : bool, except = null) -> void:
 
 remotesync func setPosition(pos):
 	current_piece.transform.origin = pos
-	#print("RPC CALL ", get_network_master())
 
 func _physics_process(delta):
-	#print(get_network_master())
 	if !is_network_master():
 		return
 	if current_piece == null:
 		return
-	#print(current_piece)
 	var camera = get_viewport().get_camera()
 	var ray_len = camera.transform.origin.distance_to(current_piece.transform.origin)
 	var mouse_pos = camera.get_viewport().get_mouse_position()
@@ -50,13 +47,6 @@ func _physics_process(delta):
 	var to = from + camera.project_ray_normal(mouse_pos) * ray_len
 	to.y = peice_height*2
 	rpc_unreliable("setPosition", to)
-	#current_piece.transform.origin = to
-	#var dis = to - original_origin
-	#opponent.get_piece(current_piece.pos).transform.origin = Vector3(-dis.x,peice_height*2,-dis.z)
-#	print(is_network_master())
-#	if is_network_master():
-#		print("wow")
-	# network_master calls function on peer side
 	
 
 func get_piece(pos):
@@ -78,24 +68,17 @@ func move_pieces_start(id) -> void:
 			add.pos = Vector2(row,column)
  
 remotesync func set_piece(p):
-	#print("YO", piece)
 	current_piece = get_piece(p)
 
 func pickup_piece(piece):
-	#print(piece.get_network_master())
-	print(piece.is_network_master())
-	#print(current_piece.is_network_master())
 	if current_piece == null and piece.is_network_master():
 		rpc_unreliable("set_piece", piece.pos)
-		#print("WTF")
 		original_origin = current_piece.transform.origin
 		original_pos = current_piece.pos
 		current_piece.disable_collision(true)
 		get_legal_moves()
-		#print("Legal moves: ", moves)
 
 puppet func rpc_put_down(tile_pos, pos, is_king):
-	#print("wtf")
 	current_piece.pos = pos
 	if is_king and !current_piece.is_king:
 		current_piece.become_king()
@@ -104,14 +87,16 @@ puppet func rpc_put_down(tile_pos, pos, is_king):
 	current_piece.disable_collision(false)
 	current_piece = null
 
+
 func put_down(tile) -> void:
+	print("0 ", current_legal_moves)
 	if current_piece != null:
 		if tile.is_show_outline():
 			var move_pos
 			var did_eat = false
 			for legal_move in current_legal_moves:
 				#if legal_move[0] != original_pos:
-				print(legal_move)
+				#print(legal_move)
 				var place_tile = get_tile(legal_move[0])
 				emit_signal("placed")
 				disconnect("placed", place_tile, "show_outline")
@@ -120,6 +105,7 @@ func put_down(tile) -> void:
 					current_piece.pos = move_pos
 					if legal_move[1] != null:
 						did_eat = true
+						place_tile.eat(null)
 					if current_piece.pos.x > 6 and !current_piece.is_king:
 						current_piece.become_king()
 					#print(current_piece.pos)
@@ -127,24 +113,32 @@ func put_down(tile) -> void:
 			current_piece.transform.origin = tile.transform.origin
 			current_piece.transform.origin.y = peice_height
 			current_piece.disable_collision(false)
-			#print(original_pos, current_piece.pos)
 			if did_eat:
 				enable_click(false, current_piece)
-				
-#				get_legal_moves()
-#				print(current_legal_moves)
-#				if len(current_legal_moves) == 1:
-#					emit_signal("finished_turn")
+				rpc_unreliable("set_piece", current_piece.pos)
+				original_origin = current_piece.transform.origin
+				original_pos = current_piece.pos
+				get_legal_moves()
+				print("1 ", current_legal_moves)
+				var can_eat = false
+				for x in current_legal_moves:
+					if x[1] != null:
+						can_eat = true
+						break
+				if not can_eat:
+					for x in current_legal_moves:
+						var final_tile = get_tile(x[0])
+						final_tile.show_outline(false)
+						emit_signal("placed")
+						disconnect("placed", get_tile(x[0]), "show_outline")
+					print("cannot eat anymore")
+					emit_signal("finished_turn")
 			elif original_pos != current_piece.pos:
 				emit_signal("finished_turn")
 			current_piece = null
 		
 slave func set_tile_eat(tile_pos, pos):
-	#print("YO")
 	get_tile(tile_pos).eat_piece = opponent.get_piece(pos)
-	#print(opponent.get_tile(pos).eat_piece)
-
-
 
 func get_legal_moves() -> void:
 	var moves = [[original_pos, null]]
@@ -173,10 +167,8 @@ func get_legal_moves() -> void:
 				moves.append([pos, null])
 	
 	var copy = moves.duplicate()
-	#var eats = []
 	for legal_move in moves:
 		var move = legal_move[0]
-		#print(move)
 		var move_tile = get_tile(move)
 		var can_eat = true
 		for op_piece in opponent.get_children():
@@ -203,7 +195,7 @@ func get_legal_moves() -> void:
 		#print(move_tile)
 		move_tile.eat_piece = legal_move[1]
 		if legal_move[1] != null:
-			print(legal_move)
+			#print(legal_move)
 			rpc_unreliable("set_tile_eat", legal_move[0], legal_move[1].pos)
 	current_legal_moves = copy
 	
